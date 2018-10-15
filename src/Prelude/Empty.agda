@@ -13,6 +13,11 @@ private postulate erasedBottom : ⊥
 
 {-# DISPLAY erasedBottom = [erased] #-}
 
+{-# FOREIGN OCaml 
+  let unit = ()
+#-}
+{-# COMPILE OCaml erasedBottom = unit #-}
+
 erase-⊥ : ⊥ → ⊥
 erase-⊥ _ = erasedBottom
 

@@ -18,11 +18,23 @@ postulate
   ioReturn : ∀ {a} {A : Set a} → A → IO A
   ioBind   : ∀ {a b} {A : Set a} {B : Set b} → IO A → (A → IO B) → IO B
 
+
+
 {-# COMPILE GHC ioReturn = (\ _ _ -> return)    #-}
 {-# COMPILE GHC ioBind =   (\ _ _ _ _ -> (>>=)) #-}
 
 {-# COMPILE UHC ioReturn = (\ _ _ x -> UHC.Agda.Builtins.primReturn x) #-}
 {-# COMPILE UHC ioBind =   (\ _ _ _ _ x y -> UHC.Agda.Builtins.primBind x y) #-}
+
+
+{-# FOREIGN OCaml
+  let ioReturn _ _ x = x
+  let ioBind _ _ _ _ x f = Lazy.force (f x)
+#-}
+
+{-# COMPILE OCaml ioReturn = ioReturn #-}
+{-# COMPILE OCaml ioBind = ioBind #-}
+
 
 ioMap : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → IO A → IO B
 ioMap f m = ioBind m λ x → ioReturn (f x)
@@ -66,6 +78,21 @@ postulate
 {-# COMPILE UHC putStr =   (UHC.Agda.Builtins.primPutStr) #-}
 {-# COMPILE UHC putStrLn = (UHC.Agda.Builtins.primPutStrLn) #-}
 
+
+{-# FOREIGN OCaml 
+  let getChar = lazy (char_of_int (read_int ()))
+  let printChar y = print_char y
+  let printString y = print_string y
+  let printEndline y = print_endline y
+#-}
+
+{-# COMPILE OCaml getChar = getChar #-}
+{-# COMPILE OCaml putChar = printChar #-}
+{-# COMPILE OCaml putStr = printString #-}
+{-# COMPILE OCaml putStrLn = printEndline #-}
+
+
+
 print : ∀ {a} {A : Set a} {{ShowA : Show A}} → A → IO Unit
 print = putStrLn ∘ show
 
@@ -79,6 +106,18 @@ postulate
 
 {-# COMPILE GHC getArgs =     fmap (map Text.pack) getArgs #-}
 {-# COMPILE GHC getProgName = fmap Text.pack getProgName   #-}
+
+
+{-# FOREIGN OCaml 
+
+  let getProgName = Sys.executable_name;;
+  let getArgs = Sys.argv;;
+
+#-}
+
+{-# COMPILE OCaml getArgs = getArgs #-}
+{-# COMPILE OCaml getProgName = getProgName #-}
+
 
 --- Misc ---
 
@@ -95,6 +134,11 @@ private
   postulate
     exitWith' : ∀ {a} {A : Set a} → Nat → IO A
   {-# COMPILE GHC exitWith' = \ _ _ -> exitWith' #-}
+
+  {-# FOREIGN OCaml
+    let exitWith1 _ _ n = exit (Z.to_int n) 
+  #-}
+  {-# COMPILE OCaml exitWith' = exitWith1 #-}
 
 exitWith : ∀ {a} {A : Set a} → ExitCode → IO A
 exitWith Success = exitWith' 0
